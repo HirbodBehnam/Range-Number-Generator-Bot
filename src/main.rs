@@ -7,7 +7,9 @@ use std::path::Path;
 use std::sync::RwLock;
 use teloxide::prelude::*;
 
+/// Error message to send to users when they message is not number
 const ERROR_MESSAGE: &str = "لطفا شماره ی دانشجویی خود را وارد کنید.";
+/// The title of the result which users receive when they enter a number
 const TOP_TEXT: &str = "این سوالات را حل کنید:";
 
 /// Represents a range of numbers
@@ -31,6 +33,7 @@ async fn main() {
     run().await;
 }
 
+/// Reads the config file of number ranges
 fn read_config() {
     let lines = read_lines("ranges.txt").expect("cannot read the config file");
     for line in lines {
@@ -52,19 +55,23 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
+/// Runs the bot
 async fn run() {
     teloxide::enable_logging!();
     let bot = Bot::from_env().auto_send();
     teloxide::repl(bot, |message| async move {
+        // Drop messages without text
         if message.update.text().is_none() {
             message.answer(ERROR_MESSAGE).await?;
             return respond(());
         }
+        // Drop messages with non-number text
         let student_number = message.update.text().unwrap().parse::<u64>();
         if student_number.is_err() {
             message.answer(ERROR_MESSAGE).await?;
             return respond(());
         }
+        // Get the number
         message
             .answer(derive_numbers(student_number.unwrap()).await)
             .await?;
